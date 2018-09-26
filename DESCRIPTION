@@ -1,0 +1,16 @@
+Package: systemaGlobalis
+Type: Package
+Title: Gapminder's fact base in R
+Version: 0.1.0
+Authors@R: person(given = "Matti", 
+                  family = "Vuorre", 
+                  email = "mv2521@columbia.edu",
+                  role = c("aut", "cre"),
+                  comment = c(ORCID = "0000-0001-5052-066X"))
+Description: An R package wrapping Gapminder's 'Systema Globalis' database.
+License: CC BY 4.0
+Encoding: UTF-8
+LazyData: true
+Depends:
+    R (>= 3.0.2)
+RoxygenNote: 6.1.0

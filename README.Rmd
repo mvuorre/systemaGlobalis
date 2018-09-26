@@ -1,0 +1,154 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r setup, include = FALSE}
+library(knitr)
+opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%",
+  warning = FALSE,
+  fig.retina = 2
+)
+```
+
+# systemaGlobalis
+
+systemaGlobalis is an R package that provides quick access to the complete [Gapminder data repository](https://github.com/open-numbers/ddf--gapminder--systema_globalis).
+
+## Installation
+
+You can install the development version of systemaGlobalis from [GitHub](https://CRAN.R-project.org) with:
+
+``` r
+devtools::install_github("mvuorre/systemaGlobalis")
+```
+
+It is not currently available on CRAN (nor is it likely to be in the near future.)
+
+## Description
+
+systemaGlobalis is a minimal R package interface to the complete [Systema Globalis](https://github.com/open-numbers/ddf--gapminder--systema_globalis#systema-globalis-sg) data compilation gathered by Gapminder.
+
+```{r packages, results = 'hide', message = FALSE}
+library(systemaGlobalis)
+library(tidyverse)
+theme_set(theme_linedraw() + theme(panel.grid = element_blank()))
+```
+
+It containts the following data frames (tibbles):
+
+- `datapoints`
+  - For each country and year, 532 variables
+  - The main data frame you'll want to work with.
+  
+```{r}
+dim(datapoints)
+datapoints[1:5, 1:5]  # First five rows and columns
+```
+  
+- `countries`
+  - Additional information, such as naming schemes, regions, etc., about the countries included in `datapoints`
+  
+```{r}
+countries
+```
+
+- `concepts`
+  - Descriptions of each of the variables in `datapoints`, including sources, tags, etc.
+
+```{r}
+concepts
+```
+
+That's it. There are no functions, simply clean datasets that are easily used in analyses. 
+
+## Examples
+
+Let's first look at a selection of variables containing the word "income":
+
+```{r}
+datapoints %>% 
+  select(contains("income")) %>% 
+  names(.)
+```
+
+```{r}
+datapoints %>% 
+  ggplot(aes(time, income_per_person_long_series)) +
+  geom_line(aes(group = geo)) +
+  scale_x_continuous(limits = c(1900, 2018))
+```
+
+To find out more about this particular variable, look at the `concepts` data frame
+
+```{r}
+concepts %>% 
+  filter(str_detect(concept, "income")) %>%
+  select(1:2) %>% 
+  slice(1:4) %>% 
+  kable()
+```
+
+We can use the `countries` data frame to get more information about the countries
+
+```{r}
+datapoints %>% 
+  left_join(rename(countries, geo = country)) %>% 
+  filter(!is.na(world_4region)) %>% 
+  ggplot(aes(time, income_per_person_long_series)) +
+  geom_line(aes(group = geo)) +
+  scale_x_continuous(limits = c(1800, 2018)) +
+  facet_wrap("world_4region")
+```
+
+And, of course, animations! Here's an animated version of the figure on page 26 of Factfulness:
+
+```{r animation, cache = TRUE}
+library(gganimate)
+p <- datapoints %>% 
+  select(geo, 
+         time, 
+         child = children_per_woman_total_fertility,
+         mortality = child_mortality_0_5_year_olds_dying_per_1000_born, 
+         pop = population_total) %>% 
+  filter(between(time, 1945, 2018)) %>%
+  ggplot(aes(child, (1000-mortality)/1000, size = pop)) +
+  annotate(geom="rect", fill = NA, col = "gray40", 
+           xmin = 8.5, xmax = 5, ymin = .55, ymax = .95) +
+  annotate(geom="rect", fill = NA, col = "gray40", 
+           xmin = 3.5, xmax = 1.1, ymin = .90, ymax = 1) +
+  geom_point(shape = 21, fill = "gray40", alpha = .8) +
+  scale_y_continuous("Children surviving to age 5",
+                     breaks = 5:10/10,
+                     limits = c(.5, 1),
+                     labels = scales::percent) +
+  scale_x_reverse("Babies per woman",
+                  breaks = 1:8) +
+  annotate(geom="text", col = "gray40", 
+           x = 8.5, y = .55, vjust = 1, hjust = 0,
+           label = "Big families and many children die") +
+    annotate(geom="text", col = "gray40", 
+           x = 3.5, y = .9, vjust = 1, hjust = 0,
+           label = "Small families and\nfew children die") +
+  theme(legend.position = "none") +
+  labs(title = "Year: {frame_time}") +
+  # Animation
+  transition_time(time)
+animate(p, nframes = 100)
+```
+
+
+# Acknowledgements
+
+systemaGlobalis is simply a minimal R package wrapper to the dataset created by Gapminder. As such, please refer to <https://www.gapminder.org/> for more information about the data, including sources, and please acknowledge them for any reuse of the data.
+
+>Gapminder created this dataset and provides it under Creative Common Attribution 4.0 International.
+
+The R package is therefore distributed under the same license.
+
+There is another gapminder R package that contains a selection of the gapminder data, [gapminder](https://github.com/jennybc/gapminder), which inspired this package.
